@@ -142,7 +142,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # 2. Tiempo máximo de inactividad (en segundos). Ejemplo: 900 = 15 minutos
-SESSION_COOKIE_AGE = 30 
+SESSION_COOKIE_AGE = 3600 
 
 # 3. Renueva el temporizador cada vez que el usuario hace clic en algo
 SESSION_SAVE_EVERY_REQUEST = True

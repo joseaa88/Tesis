@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-12">
+    <!-- CABECERA DE LA PÁGINA -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+                Agenda Local
+            </span>
+            <h1 class="text-3xl sm:text-4xl font-black text-slate-900 mt-2 tracking-tight">
+                Eventos y Actividades en Pucusana
+            </h1>
+            <p class="text-slate-500 text-sm mt-1">
+                Participa en las festividades culturales, deportivas y gastronómicas organizadas en el distrito.
+            </p>
+        </div>
+
+        {% if user.is_staff %}
+        <a href="{% url 'evento_crear' %}" class="btn btn-primary bg-blue-600 hover:bg-blue-700 border-none text-white rounded-xl shadow-lg shadow-blue-600/20 gap-2">
+            <i class="fa-solid fa-plus"></i> Registrar Evento
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- LISTADO DE EVENTOS -->
+    {% if eventos %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {% for evento in eventos %}
+        <div class="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between">
+            <div>
+                <!-- IMAGEN DEL EVENTO -->
+                <div class="relative h-48 bg-slate-100 overflow-hidden">
+                    {% if evento.imagen %}
+                        <img src="{{ evento.imagen.url }}" alt="{{ evento.titulo }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <div class="w-full h-full bg-gradient-to-r from-blue-900 to-slate-900 flex items-center justify-center text-white text-3xl">
+                            🎉
+                        </div>
+                    {% endif %}
+                    
+                    {% if evento.categoria %}
+                    <div class="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-semibold px-2.5 py-1 rounded-lg border border-white/10">
+                        {{ evento.categoria.nombre }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- CUERPO DE LA TARJETA -->
+                <div class="p-6">
+                    <div class="text-xs text-blue-600 font-bold mb-2 flex items-center gap-1.5">
+                        <i class="fa-regular fa-clock"></i>
+                        {{ evento.fecha_inicio|date:"d M, Y — H:i" }} hrs
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">
+                        {{ evento.titulo }}
+                    </h3>
+                    <p class="text-slate-500 text-sm leading-relaxed line-clamp-3">
+                        {{ evento.descripcion }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- METADATOS Y LUGAR -->
+            <div class="px-6 pb-6 pt-4 border-t border-slate-50 bg-slate-50/50 flex flex-col gap-1 text-xs text-slate-600">
+                <div>
+                    <span class="font-semibold text-slate-700">📍 Ubicación:</span> {{ evento.ubicacion }}
+                </div>
+                <div>
+                    <span class="font-semibold text-slate-700">🏛️ Organiza:</span> {{ evento.organizador }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- ESTADO VACÍO -->
+    <div class="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8 max-w-2xl mx-auto">
+        <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto text-2xl mb-4">
+            <i class="fa-regular fa-calendar"></i>
+        </div>
+        <h3 class="text-xl font-bold text-slate-800">No hay eventos próximos</h3>
+        <p class="text-slate-500 text-sm mt-1">
+            En este momento no hay actividades registradas en la agenda municipal. Revisa nuevamente pronto.
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,76 +1,86 @@
 import os
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from django.db.models import Avg, Count
-from django.contrib import messages  # Importación clave para los globos de éxito
+from django.db.models import Avg, Count, F
+from django.contrib import messages
 from django.contrib.auth.models import User
+from django.utils import timezone
 
-# Importamos nuestros modelos y el motor de IA
-from .models import Lugar, Categoria, PerfilUsuario, Resena 
+# Importamos modelos y motor de IA
+from .models import Lugar, Categoria, PerfilUsuario, Resena, Evento
 from .ml_engine import obtener_recomendaciones_rf
 
-# NUEVA VISTA: Portada de Bienvenida
+# PORTADA PÚBLICA
 def landing(request):
-    # Si el usuario ya está logueado (tiene cuenta), lo mandamos directo al catálogo
     if request.user.is_authenticated:
         return redirect('index')
-    # Si es visitante nuevo, le mostramos la portada
     return render(request, 'landing.html')
 
-
-# VISTA PRINCIPAL: Catálogo con Inteligencia Artificial
+# HU02 / HU03 / HU05: Catálogo y Búsqueda
 def index(request):
-    # 1. Traemos todos los lugares y todas las categorías iniciales
-    lugares_lista = Lugar.objects.all()
+    lugares_lista = Lugar.objects.select_related('categoria').all()
     categorias_lista = Categoria.objects.all()
     
-    # 2. Capturamos lo que el usuario escribió o seleccionó (si es que lo hizo)
-    busqueda = request.GET.get('buscar')
-    categoria_id = request.GET.get('categoria')
+    busqueda = request.GET.get('buscar', '').strip()
+    categoria_id = request.GET.get('categoria', '').strip()
     
-    # 3. Aplicamos los filtros si hay datos
     if busqueda:
-        # icontains busca palabras clave sin importar mayúsculas/minúsculas
         lugares_lista = lugares_lista.filter(nombre__icontains=busqueda)
         
-    if categoria_id:
-        # Filtramos por el ID de la categoría seleccionada
-        lugares_lista = lugares_lista.filter(categoria_id=categoria_id)
+    if categoria_id and categoria_id.isdigit():
+        lugares_lista = lugares_lista.filter(categoria_id=int(categoria_id))
         
-    # 4. APLICAMOS LA INTELIGENCIA ARTIFICIAL (HU11b)
     recomendados_ids = [] 
-    
     if request.user.is_authenticated and not request.user.is_staff:
-        # Le pasamos a la IA la lista de lugares 
         lugares_lista, recomendados_ids = obtener_recomendaciones_rf(request.user, lugares_lista)
         
-    # 5. Enviamos todo al HTML
     contexto = {
         'lugares': lugares_lista,
         'categorias': categorias_lista, 
-        'recomendados_ids': recomendados_ids, 
+        'recomendados_ids': recomendados_ids,
+        'busqueda_actual': busqueda,
+        'categoria_actual': int(categoria_id) if categoria_id.isdigit() else None
     }
-    
     return render(request, 'index.html', contexto)
 
+# HU03: Endpoint Asíncrono para Búsqueda y Filtrado (Fetch API)
+def api_buscar_lugares(request):
+    busqueda = request.GET.get('buscar', '').strip()
+    categoria_id = request.GET.get('categoria', '').strip()
+    
+    lugares = Lugar.objects.select_related('categoria').all()
+    if busqueda:
+        lugares = lugares.filter(nombre__icontains=busqueda)
+    if categoria_id and categoria_id.isdigit():
+        lugares = lugares.filter(categoria_id=int(categoria_id))
+        
+    data = [{
+        'id': l.id,
+        'nombre': l.nombre,
+        'descripcion': l.descripcion[:120] + '...',
+        'categoria': l.categoria.nombre if l.categoria else 'General',
+        'latitud': l.latitud,
+        'longitud': l.longitud,
+        'precio': float(l.precio),
+        'imagen_url': l.imagen.url if l.imagen else ''
+    } for l in lugares]
+    
+    return JsonResponse({'lugares': data, 'total': len(data)})
 
-# NUEVA VISTA: Detalle del Lugar y Reseñas
+# HU04 / HU08: Detalle del Lugar y Reseñas
 def detalle_lugar(request, lugar_id):
     lugar = get_object_or_404(Lugar, id=lugar_id)
-    
-    # 1. Traemos todas las reseñas de este lugar, de la más nueva a la más vieja
     resenas = lugar.resenas.all().order_by('-fecha')
 
-    # 2. Lógica para guardar un nuevo comentario
     if request.method == 'POST' and request.user.is_authenticated:
-        comentario_texto = request.POST.get('comentario')
-        calificacion_num = request.POST.get('calificacion')
+        comentario_texto = request.POST.get('comentario', '').strip()
+        calificacion_num = request.POST.get('calificacion', '').strip()
         
         if comentario_texto and calificacion_num:
-            # Regla de Negocio / Test: Sanitización sintáctica de comentarios obscenos
             palabras_prohibidas = ['insulto1', 'obsceno2']
             if any(palabra in comentario_texto.lower() for palabra in palabras_prohibidas):
                 messages.error(request, "Tu comentario contiene palabras inapropiadas no permitidas en la plataforma.")
@@ -80,84 +90,108 @@ def detalle_lugar(request, lugar_id):
                 lugar=lugar,
                 usuario=request.user,
                 calificacion=int(calificacion_num),
-                commentario=comentario_texto
+                comentario=comentario_texto
             )
             messages.success(request, "¡Tu reseña ha sido publicada exitosamente!")
             return redirect('detalle_lugar', lugar_id=lugar.id)
 
-    # 3. Enviamos el lugar y sus reseñas al HTML
     contexto = {
         'lugar': lugar,
         'resenas': resenas
     }
     return render(request, 'detalle.html', contexto)
 
+# HU09: Registro de Métrica al Compartir en Redes
+def registrar_compartido(request, lugar_id):
+    if request.method == 'POST':
+        lugar = get_object_or_404(Lugar, id=lugar_id)
+        Lugar.objects.filter(id=lugar.id).update(compartidos=F('compartidos') + 1)
+        lugar.refresh_from_db()
+        return JsonResponse({'status': 'ok', 'compartidos': lugar.compartidos})
+    return JsonResponse({'status': 'invalid'}, status=400)
 
-# VISTA DE REGISTRO
+# HU07: Listado Público de Eventos
+def eventos_publicos(request):
+    ahora = timezone.now()
+    eventos = Evento.objects.filter(estado='publicado', fecha_fin__gte=ahora).order_by('fecha_inicio')
+    return render(request, 'eventos.html', {'eventos': eventos})
+
+# HU07: Crear Evento (Gestor Municipal / Staff)
+@staff_member_required
+def evento_crear(request):
+    categorias = Categoria.objects.all()
+    if request.method == 'POST':
+        titulo = request.POST.get('titulo')
+        descripcion = request.POST.get('descripcion')
+        categoria_id = request.POST.get('categoria')
+        fecha_inicio = request.POST.get('fecha_inicio')
+        fecha_fin = request.POST.get('fecha_fin')
+        ubicacion = request.POST.get('ubicacion')
+        
+        if titulo and fecha_inicio and fecha_fin:
+            Evento.objects.create(
+                titulo=titulo,
+                descripcion=descripcion,
+                categoria_id=categoria_id if categoria_id else None,
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin,
+                ubicacion=ubicacion,
+                creado_por=request.user
+            )
+            messages.success(request, "Evento registrado con éxito en la agenda municipal.")
+            return redirect('eventos_publicos')
+            
+    return render(request, 'admin_evento_form.html', {'categorias': categorias})
+
+# HU01: Registro de Usuarios
 def registro(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         correo_ingresado = request.POST.get('email', '').strip()
         
-        # 1. Validación en base de datos (SQLite): Verificar si el correo ya existe
-        if correo_ingresado:
-            correo_duplicado = User.objects.filter(email__iexact=correo_ingresado).exists()
-            if correo_duplicado:
-                messages.error(request, "⚠️ El correo electrónico ya se encuentra registrado en Explora Pucusana.")
-                contexto = {'form': form}
-                return render(request, 'registro.html', contexto)
+        if correo_ingresado and User.objects.filter(email__iexact=correo_ingresado).exists():
+            messages.error(request, "⚠️ El correo electrónico ya se encuentra registrado en Explora Pucusana.")
+            return render(request, 'registro.html', {'form': form})
         
-        # 2. Si el correo no está duplicado, procedemos con las validaciones nativas del formulario
         if form.is_valid():
-            usuario = form.save(commit=False)  # Creamos la instancia en memoria sin guardar aún
-            usuario.email = correo_ingresado   # Asignamos el correo electrónico validado
-            usuario.save()                     # Guardamos de forma definitiva en la base de datos
-            
+            usuario = form.save(commit=False)
+            usuario.email = correo_ingresado
+            usuario.save()
+            PerfilUsuario.objects.create(usuario=usuario)
             login(request, usuario) 
-            # Inyectamos el globo de éxito para la redirección al Perfil
             messages.success(request, f"¡Registro completado con éxito! Bienvenido(a), {usuario.username}.")
             return redirect('perfil') 
     else:
         form = UserCreationForm()
         
-    contexto = {'form': form}
-    return render(request, 'registro.html', contexto)
+    return render(request, 'registro.html', {'form': form})
 
-
-# NUEVA VISTA: Perfil e Intereses (HU06) - ¡ACTUALIZADA CON MESSAGES!
+# HU06: Perfil e Intereses
 @login_required 
 def perfil(request):
-    perfil_obj, creado = PerfilUsuario.objects.get_or_create(usuario=request.user)
+    perfil_obj, _ = PerfilUsuario.objects.get_or_create(usuario=request.user)
     todas_categorias = Categoria.objects.all()
 
     if request.method == 'POST':
-        # 1. Guardamos datos demográficos
-        perfil_obj.edad = request.POST.get('edad')
-        perfil_obj.nacionalidad = request.POST.get('nacionalidad')
-
-        # 2. Guardamos los intereses (checkboxes)
+        perfil_obj.edad = request.POST.get('edad') or None
+        perfil_obj.nacionalidad = request.POST.get('nacionalidad', 'Peruano')
         intereses_seleccionados = request.POST.getlist('intereses') 
         perfil_obj.intereses.set(intereses_seleccionados) 
         perfil_obj.save()
-
-        # Inyectamos un mensaje flotante de confirmación antes de volver al catálogo principal
         messages.success(request, "🎯 Preferencias actualizadas. El motor de Inteligencia Artificial ha reestructurado tu catálogo.")
         return redirect('index') 
 
-    # 3. Preparamos los datos para mandarlos al HTML
     contexto = {
         'perfil': perfil_obj,
         'categorias': todas_categorias,
         'intereses_actuales': perfil_obj.intereses.values_list('id', flat=True)
     }
-    
     return render(request, 'perfil.html', contexto)
 
-
-# NUEVA VISTA: Dashboard Municipal con Chart.js (HU11a)
+# DASHBOARD MUNICIPAL
 @staff_member_required 
 def dashboard_municipal(request):
-    categorias = Categoria.objects.annotate(total=Count('lugar'))
+    categorias = Categoria.objects.annotate(total=Count('lugares'))
     nombres_categorias = [c.nombre for c in categorias]
     totales_categorias = [c.total for c in categorias]
 
@@ -173,9 +207,7 @@ def dashboard_municipal(request):
     }
     return render(request, 'dashboard.html', contexto)
 
-
-# NUEVA VISTA: Mapa Interactivo (HU Nivel 3)
+# MAPA INTERACTIVO
 def mapa_turistico(request):
-    # Traemos todos los lugares de la base de datos para ponerles un pin
     lugares = Lugar.objects.all()
     return render(request, 'mapa.html', {'lugares': lugares})

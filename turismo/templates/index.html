@@ -31,32 +31,35 @@
     <p class="text-base sm:text-lg text-slate-300 max-w-xl mx-auto font-normal leading-relaxed">
       Descubre la riqueza gastronómica, playas escondidas y rutas recomendadas especialmente para ti.
     </p>
-    <div class="mt-6">
+    <div class="mt-6 flex justify-center gap-3">
       <a href="{% url 'mapa' %}" class="btn btn-primary bg-blue-600 hover:bg-blue-500 border-none text-white px-6 font-semibold shadow-lg shadow-blue-600/30">
         <i class="fa-solid fa-map-location-dot"></i> Ver Mapa Turístico
+      </a>
+      <a href="{% url 'eventos_publicos' %}" class="btn btn-outline border-white/30 text-white hover:bg-white/10 px-5 font-semibold">
+        <i class="fa-regular fa-calendar-days"></i> Agenda de Eventos
       </a>
     </div>
   </div>
 </div>
 
-<!-- BARRA DE BÚSQUEDA Y FILTROS FLOTANTE -->
+<!-- BARRA DE BÚSQUEDA Y FILTROS FLOTANTE (HU03) -->
 <div class="max-w-5xl mx-auto px-4 -mt-10 relative z-30">
     <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100">
-        <form method="GET" action="{% url 'index' %}" class="flex flex-col md:flex-row gap-3">
+        <form id="form-filtros" method="GET" action="{% url 'index' %}" class="flex flex-col md:flex-row gap-3" onsubmit="event.preventDefault();">
             
             <!-- Campo de Texto -->
             <div class="flex-1 relative">
                 <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <i class="fa-solid fa-magnifying-glass text-sm"></i>
                 </div>
-                <input type="text" name="buscar" placeholder="¿Qué lugar buscas? Ej. Boquerón..." 
+                <input type="text" id="input-buscar" name="buscar" placeholder="¿Qué lugar buscas? Ej. Boquerón..." 
                        class="input input-bordered w-full pl-10 border-slate-200 focus:border-blue-500 text-sm rounded-xl" 
                        value="{{ request.GET.buscar }}">
             </div>
 
             <!-- Selector de Categoría -->
             <div class="w-full md:w-64 relative">
-                <select name="categoria" class="select select-bordered w-full border-slate-200 focus:border-blue-500 text-sm rounded-xl text-slate-700">
+                <select id="select-categoria" name="categoria" class="select select-bordered w-full border-slate-200 focus:border-blue-500 text-sm rounded-xl text-slate-700">
                     <option value="">Todas las categorías</option>
                     {% for cat in categorias %}
                         <option value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:"s" %}selected{% endif %}>
@@ -66,17 +69,15 @@
                 </select>
             </div>
 
-            <!-- Botón Buscar -->
+            <!-- Botón Buscar (Fallback para submit convencional) -->
             <button type="submit" class="btn btn-primary bg-blue-600 hover:bg-blue-700 border-none text-white rounded-xl px-6 gap-2">
                 <span>Buscar</span>
             </button>
             
             <!-- Limpiar Filtros -->
-            {% if request.GET.buscar or request.GET.categoria %}
-                <a href="{% url 'index' %}" class="btn btn-ghost text-slate-500 hover:bg-slate-100 rounded-xl">
-                    <i class="fa-solid fa-xmark"></i> Limpiar
-                </a>
-            {% endif %}
+            <a href="{% url 'index' %}" id="btn-limpiar" class="btn btn-ghost text-slate-500 hover:bg-slate-100 rounded-xl {% if not request.GET.buscar and not request.GET.categoria %}hidden{% endif %}">
+                <i class="fa-solid fa-xmark"></i> Limpiar
+            </a>
         </form>
     </div>
 </div>
@@ -90,7 +91,8 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    <!-- Contenedor dinámico de tarjetas -->
+    <div id="grid-lugares" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         
         {% for lugar in lugares %}
         <div class="group bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
@@ -152,24 +154,97 @@
         </div>
         
         {% empty %}
-        <!-- ESTADO VACÍO (EMPTY STATE) -->
         <div class="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8">
             <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto text-2xl mb-4">
                 <i class="fa-solid fa-compass"></i>
             </div>
             <h3 class="text-xl font-bold text-slate-800">No encontramos resultados</h3>
             <p class="text-slate-500 text-sm mt-1 max-w-md mx-auto">
-                No hay atractivos registrados que coincidan con la búsqueda. Intenta limpiar los filtros o buscar otro término.
+                No hay atractivos registrados que coincidan con la búsqueda.
             </p>
-            {% if request.GET.buscar or request.GET.categoria %}
-                <a href="{% url 'index' %}" class="btn btn-sm btn-outline border-slate-300 text-slate-600 mt-4">
-                    Ver todos los lugares
-                </a>
-            {% endif %}
         </div>
         {% endfor %}
 
     </div>
 </section>
+
+<!-- HU03: SCRIPT DE FILTRADO ASÍNCRONO SIN RECARGA -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const inputBuscar = document.getElementById('input-buscar');
+    const selectCategoria = document.getElementById('select-categoria');
+    const gridLugares = document.getElementById('grid-lugares');
+    const btnLimpiar = document.getElementById('btn-limpiar');
+    let debounceTimer;
+
+    function ejecutarBusqueda() {
+        const query = inputBuscar.value.trim();
+        const categoria = selectCategoria.value;
+
+        if (query || categoria) {
+            btnLimpiar.classList.remove('hidden');
+        } else {
+            btnLimpiar.classList.add('hidden');
+        }
+
+        fetch(`/api/buscar-lugares/?buscar=${encodeURIComponent(query)}&categoria=${encodeURIComponent(categoria)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.lugares.length === 0) {
+                    gridLugares.innerHTML = `
+                        <div class="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8">
+                            <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto text-2xl mb-4">
+                                <i class="fa-solid fa-compass"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-800">No encontramos resultados</h3>
+                            <p class="text-slate-500 text-sm mt-1">Intenta con otro término o limpiando las categorías.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                gridLugares.innerHTML = data.lugares.map(lugar => `
+                    <div class="group bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
+                        <div class="relative overflow-hidden h-52 bg-slate-100">
+                            <img src="${lugar.imagen_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80'}" 
+                                 alt="${lugar.nombre}" 
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-medium px-2.5 py-1 rounded-lg border border-white/10">
+                                📍 ${lugar.categoria}
+                            </div>
+                        </div>
+                        <div class="p-5 flex flex-col flex-grow justify-between">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                                    <a href="/lugar/${lugar.id}/">${lugar.nombre}</a>
+                                </h3>
+                                <p class="text-slate-500 text-sm mt-2 line-clamp-2 leading-relaxed">${lugar.descripcion}</p>
+                            </div>
+                            <div class="flex items-center justify-between pt-4 mt-4 border-t border-slate-100">
+                                <div>
+                                    <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold block">Ingreso / Costo</span>
+                                    <span class="text-lg font-extrabold text-emerald-600">
+                                        ${lugar.precio == 0 ? '¡Gratis!' : 'S/ ' + lugar.precio.toFixed(2)}
+                                    </span>
+                                </div>
+                                <a href="/lugar/${lugar.id}/" class="inline-flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700">
+                                    Ver más <i class="fa-solid fa-chevron-right text-xs transition-transform group-hover:translate-x-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            })
+            .catch(err => console.error("Error en búsqueda asíncrona:", err));
+    }
+
+    inputBuscar.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(ejecutarBusqueda, 250);
+    });
+
+    selectCategoria.addEventListener('change', ejecutarBusqueda);
+});
+</script>
 
 {% endblock %}

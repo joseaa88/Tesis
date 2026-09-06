@@ -88,25 +88,27 @@
 
                     <!-- BOTONES PARA COMPARTIR -->
                     <div class="mt-6 pt-6 border-t border-slate-100 flex flex-wrap items-center gap-2">
-                        <span class="text-xs font-semibold text-slate-400 uppercase mr-2">Compartir:</span>
-                        
-                        <a href="https://api.whatsapp.com/send?text=¡Mira este increíble lugar en Pucusana! Te invito a visitarlo: {{ request.build_absolute_uri }}" 
-                           target="_blank" 
-                           class="btn btn-xs bg-[#25D366] hover:bg-[#128C7E] text-white border-none rounded-lg gap-1.5">
-                            <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
-                        </a>
+                       <span class="text-xs font-semibold text-slate-400 uppercase mr-2">Compartir:</span>
+    
+                     <a href="https://api.whatsapp.com/send?text=¡Mira este increíble lugar en Pucusana! Te invito a visitarlo: {{ request.build_absolute_uri }}" 
+                     target="_blank" 
+                     onclick="registrarCompartido({{ lugar.id }})"
+                     class="btn btn-xs bg-[#25D366] hover:bg-[#128C7E] text-white border-none rounded-lg gap-1.5">
+                     <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+                     </a>
 
-                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" 
-                           target="_blank" 
-                           class="btn btn-xs bg-[#1877F2] hover:bg-[#166FE5] text-white border-none rounded-lg gap-1.5">
-                            <i class="fa-brands fa-facebook text-sm"></i> Facebook
-                        </a>
+                     <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" 
+                     target="_blank" 
+                     onclick="registrarCompartido({{ lugar.id }})"
+                     class="btn btn-xs bg-[#1877F2] hover:bg-[#166FE5] text-white border-none rounded-lg gap-1.5">
+                     <i class="fa-brands fa-facebook text-sm"></i> Facebook
+                      </a>
 
-                        <button onclick="navigator.clipboard.writeText('{{ request.build_absolute_uri }}'); alert('¡Enlace copiado al portapapeles!');" 
-                                class="btn btn-xs btn-ghost text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg gap-1.5">
-                            <i class="fa-solid fa-link text-xs"></i> Copiar enlace
-                        </button>
-                    </div>
+                     <button onclick="copiarEnlace({{ lugar.id }})" 
+                       class="btn btn-xs btn-ghost text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg gap-1.5">
+                       <i class="fa-solid fa-link text-xs"></i> Copiar enlace
+                      </button>
+                   </div>
                 </div>
 
             </div>
@@ -221,8 +223,25 @@
 
             var marker = L.marker([lat, lng]).addTo(map);
             marker.bindPopup("<b class='text-slate-900 font-bold'>{{ lugar.nombre }}</b><br><span class='text-xs text-slate-500'>¡Te esperamos aquí!</span>").openPopup();
-        }
-    });
+           }
+         });
+         function registrarCompartido(lugarId) {
+         fetch(`/api/lugar/${lugarId}/compartir/`, {
+         method: 'POST',
+         headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+         }
+          }).catch(e => console.error("Error al registrar compartido:", e));
+          }
+
+          function copiarEnlace(lugarId) {
+          navigator.clipboard.writeText(window.location.href).then(() => {
+          registrarCompartido(lugarId);
+          alert('¡Enlace copiado al portapapeles!');
+          });
+         }
 </script>
+
 {% endif %}
 {% endblock %}

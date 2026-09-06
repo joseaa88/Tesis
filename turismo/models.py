@@ -9,25 +9,28 @@ class Categoria(models.Model):
     def __str__(self):
         return self.nombre
 
-# 2. Atractivos Turísticos (Para HU02, HU04 - Listado y Detalle)
+# 2. Atractivos Turísticos (Para HU02, HU04, HU09)
 class Lugar(models.Model):
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField()
-    categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True)
+    categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True, related_name="lugares")
     imagen = models.ImageField(upload_to='lugares/', null=True, blank=True)
     
-    # Geolocalización (Para el mapa)
-    latitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitud = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    # Geolocalización para el mapa interactivo (Leaflet.js)
+    latitud = models.FloatField(default=-12.4830, help_text="Latitud decimal")
+    longitud = models.FloatField(default=-76.7960, help_text="Longitud decimal")
     
     direccion = models.CharField(max_length=255, blank=True)
     precio = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="0 para gratis")
+    horario = models.CharField(max_length=100, default="08:00 AM - 06:00 PM", blank=True)
+    telefono = models.CharField(max_length=20, blank=True)
+    
+    # HU09: Métrica de interacción al compartir
+    compartidos = models.PositiveIntegerField(default=0)
+    visitas = models.PositiveIntegerField(default=0)
     
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
-    # NUEVOS CAMPOS PARA EL MAPA:
-    latitud = models.FloatField(default=-12.4830, help_text="Latitud para Google Maps")
-    longitud = models.FloatField(default=-76.7960, help_text="Longitud para Google Maps")
     class Meta:
         verbose_name = "Lugar"
         verbose_name_plural = "Lugares"
@@ -37,11 +40,8 @@ class Lugar(models.Model):
 
 # 3. Perfil de Usuario (Para HU01, HU06 - Intereses)
 class PerfilUsuario(models.Model):
-    usuario = models.OneToOneField(User, on_delete=models.CASCADE)
-    # Aquí guardamos qué le gusta al usuario para el Random Forest (HU05)
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name="perfilusuario")
     intereses = models.ManyToManyField(Categoria, blank=True, related_name="interesados")
-    
-    # Datos demográficos simples para mejorar la predicción
     edad = models.PositiveIntegerField(null=True, blank=True)
     nacionalidad = models.CharField(max_length=100, default="Peruano")
 
@@ -58,3 +58,30 @@ class Resena(models.Model):
 
     def __str__(self):
         return f"{self.usuario.username} - {self.lugar.nombre}"
+
+# 5. Eventos Locales (Para HU07 - Agenda Municipal)
+class Evento(models.Model):
+    ESTADOS = [
+        ('publicado', 'Publicado'),
+        ('pendiente', 'Pendiente'),
+    ]
+
+    titulo = models.CharField(max_length=200)
+    descripcion = models.TextField()
+    categoria = models.ForeignKey(Categoria, on_delete=models.SET_NULL, null=True, related_name="eventos")
+    fecha_inicio = models.DateTimeField()
+    fecha_fin = models.DateTimeField()
+    ubicacion = models.CharField(max_length=255)
+    organizador = models.CharField(max_length=150, default="Municipalidad Distrital de Pucusana")
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='publicado')
+    imagen = models.ImageField(upload_to='eventos/', null=True, blank=True)
+    creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Evento"
+        verbose_name_plural = "Eventos"
+        ordering = ['fecha_inicio']
+
+    def __str__(self):
+        return f"{self.titulo} ({self.fecha_inicio.strftime('%d/%m/%Y')})"
