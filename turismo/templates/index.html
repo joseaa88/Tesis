@@ -1,89 +1,250 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="hero min-h-[60vh] rounded-xl overflow-hidden relative" style="background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80');">
-  <div class="hero-overlay bg-opacity-60 bg-black"></div>
-  <div class="hero-content text-center text-neutral-content relative z-10">
-    <div class="max-w-md">
-      <h1 class="mb-5 text-5xl font-bold text-white">Explora Pucusana</h1>
-      <p class="mb-5 text-lg text-gray-200">
-        Descubre los tesoros escondidos, la gastronomía marina y las rutas turísticas inteligentes.
-      </p>
-      <button class="btn btn-primary border-none bg-blue-600 hover:bg-blue-700 text-white">Ver Mapa Turístico 🗺️</button>
+
+<!-- MODAL / BANNER ADMIN -->
+{% if user.is_staff %}
+<div class="bg-gradient-to-r from-slate-900 to-indigo-900 text-white px-4 py-3 shadow-md">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-sm">
+        <div class="flex items-center gap-2 font-medium">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Modo Gestor Municipal Activo</span>
+        </div>
+        <a href="/admin/" class="btn btn-xs sm:btn-sm bg-white/10 hover:bg-white/20 text-white border-white/20 gap-2">
+            <i class="fa-solid fa-gear text-xs"></i> Panel de Admin
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- HERO SECTION CON EFECTO DE PROFUNDIDAD -->
+<div class="relative bg-slate-900 text-white min-h-[420px] flex items-center justify-center bg-cover bg-center" 
+     style="background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.85)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80');">
+  
+  <div class="max-w-3xl mx-auto text-center px-4 pt-10 pb-20">
+    <span class="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
+      Destino Turístico Inteligente
+    </span>
+    <h1 class="text-4xl sm:text-6xl font-black mt-3 mb-4 tracking-tight">
+      Explora Pucusana
+    </h1>
+    <p class="text-base sm:text-lg text-slate-300 max-w-xl mx-auto font-normal leading-relaxed">
+      Descubre la riqueza gastronómica, playas escondidas y rutas recomendadas especialmente para ti.
+    </p>
+    <div class="mt-6 flex justify-center gap-3">
+      <a href="{% url 'mapa' %}" class="btn btn-primary bg-blue-600 hover:bg-blue-500 border-none text-white px-6 font-semibold shadow-lg shadow-blue-600/30">
+        <i class="fa-solid fa-map-location-dot"></i> Ver Mapa Turístico
+      </a>
+      <a href="{% url 'eventos_publicos' %}" class="btn btn-outline border-white/30 text-white hover:bg-white/10 px-5 font-semibold">
+        <i class="fa-regular fa-calendar-days"></i> Agenda de Eventos
+      </a>
     </div>
   </div>
 </div>
-<div class="mt-8 bg-base-100 p-6 rounded-xl shadow-lg border border-gray-100 relative z-20 mx-4 md:mx-0">
-    <form method="GET" action="{% url 'index' %}" class="flex flex-col md:flex-row gap-4">
-        
-        <div class="flex-1">
-            <input type="text" name="buscar" placeholder="¿Qué lugar buscas? Ej. Boquerón..." 
-                   class="input input-bordered w-full border-blue-200 focus:border-blue-500" 
-                   value="{{ request.GET.buscar }}">
-        </div>
 
-        <div class="w-full md:w-1/4">
-            <select name="categoria" class="select select-bordered w-full border-blue-200">
-                <option value="">Todas las categorías</option>
-                {% for cat in categorias %}
-                    <option value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:"s" %}selected{% endif %}>
-                        {{ cat.icono }} {{ cat.nombre }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
+<!-- BARRA DE BÚSQUEDA Y FILTROS FLOTANTE (HU03) -->
+<div class="max-w-5xl mx-auto px-4 -mt-10 relative z-30">
+    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-xl border border-slate-100">
+        <form id="form-filtros" method="GET" action="{% url 'index' %}" class="flex flex-col md:flex-row gap-3" onsubmit="event.preventDefault();">
+            
+            <!-- Campo de Texto -->
+            <div class="flex-1 relative">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                </div>
+                <input type="text" id="input-buscar" name="buscar" placeholder="¿Qué lugar buscas? Ej. Boquerón..." 
+                       class="input input-bordered w-full pl-10 border-slate-200 focus:border-blue-500 text-sm rounded-xl" 
+                       value="{{ request.GET.buscar }}">
+            </div>
 
-        <button type="submit" class="btn btn-primary bg-blue-600 hover:bg-blue-700 border-none text-white">
-            Buscar 🔍
-        </button>
-        
-        {% if request.GET.buscar or request.GET.categoria %}
-            <a href="{% url 'index' %}" class="btn btn-ghost text-gray-500">Limpiar</a>
-        {% endif %}
-    </form>
+            <!-- Selector de Categoría -->
+            <div class="w-full md:w-64 relative">
+                <select id="select-categoria" name="categoria" class="select select-bordered w-full border-slate-200 focus:border-blue-500 text-sm rounded-xl text-slate-700">
+                    <option value="">Todas las categorías</option>
+                    {% for cat in categorias %}
+                        <option value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.icono }} {{ cat.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Botón Buscar (Fallback para submit convencional) -->
+            <button type="submit" class="btn btn-primary bg-blue-600 hover:bg-blue-700 border-none text-white rounded-xl px-6 gap-2">
+                <span>Buscar</span>
+            </button>
+            
+            <!-- Limpiar Filtros -->
+            <a href="{% url 'index' %}" id="btn-limpiar" class="btn btn-ghost text-slate-500 hover:bg-slate-100 rounded-xl {% if not request.GET.buscar and not request.GET.categoria %}hidden{% endif %}">
+                <i class="fa-solid fa-xmark"></i> Limpiar
+            </a>
+        </form>
+    </div>
 </div>
 
-<div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-    
-    {% for lugar in lugares %}
-    <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-        <figure>
-            {% if lugar.imagen %}
-                <img src="{{ lugar.imagen.url }}" alt="{{ lugar.nombre }}" class="h-48 w-full object-cover" />
-            {% else %}
-                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80" alt="Playa" class="h-48 w-full object-cover" />
-            {% endif %}
-        </figure>
-        <div class="card-body">
-            <h2 class="card-title text-blue-800 hover:text-blue-600 transition-colors">
-            <a href="{% url 'detalle_lugar' lugar.id %}">{{ lugar.nombre }}</a>
-            </h2>
+<!-- GRID DE LUGARES TURÍSTICOS -->
+<section class="max-w-7xl mx-auto px-4 py-16">
+    <div class="flex justify-between items-end mb-8">
+        <div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Atractivos Destacados</h2>
+            <p class="text-slate-500 text-sm mt-1">Lugares y experiencias recomendadas en el distrito</p>
+        </div>
+    </div>
+
+    <!-- Contenedor dinámico de tarjetas -->
+    <div id="grid-lugares" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        {% for lugar in lugares %}
+        <div class="group bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
             
-            <p class="text-sm text-gray-600 line-clamp-2">{{ lugar.descripcion }}</p>
-            
-            <div class="card-actions justify-between items-center mt-4">
-                <span class="text-lg font-bold text-green-600">
-                    {% if lugar.precio == 0 %}
-                        ¡Gratis!
-                    {% else %}
-                        S/ {{ lugar.precio }}
-                    {% endif %}
-                </span>
+            <!-- Contenedor Imagen -->
+            <div class="relative overflow-hidden h-52 bg-slate-100">
+                {% if lugar.imagen %}
+                    <img src="{{ lugar.imagen.url }}" alt="{{ lugar.nombre }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                {% else %}
+                    <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80" alt="Playa por defecto" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                {% endif %}
                 
+                <!-- Badge Inteligente Recomendado -->
+                {% if lugar.id in recomendados_ids %}
+                <div class="absolute top-3 right-3 bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full shadow-lg border border-amber-300/50 flex items-center gap-1 z-10 backdrop-blur-md">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Recomendado
+                </div>
+                {% endif %}
+
+                <!-- Categoría Flotante -->
                 {% if lugar.categoria %}
-                <div class="badge badge-outline">
+                <div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-medium px-2.5 py-1 rounded-lg border border-white/10">
                     {{ lugar.categoria.icono }} {{ lugar.categoria.nombre }}
                 </div>
                 {% endif %}
             </div>
-        </div>
-    </div>
-    
-    {% empty %}
-    <div class="col-span-3 text-center py-10">
-        <h3 class="text-2xl font-bold text-gray-500">Aún no hay lugares turísticos registrados.</h3>
-    </div>
-    {% endfor %}
 
-</div>
+            <!-- Cuerpo de la Tarjeta -->
+            <div class="p-5 flex flex-col flex-grow justify-between">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        <a href="{% url 'detalle_lugar' lugar.id %}" class="focus:outline-none">
+                            {{ lugar.nombre }}
+                        </a>
+                    </h3>
+                    <p class="text-slate-500 text-sm mt-2 line-clamp-2 leading-relaxed">
+                        {{ lugar.descripcion }}
+                    </p>
+                </div>
+                
+                <!-- Footer de la Tarjeta -->
+                <div class="flex items-center justify-between pt-4 mt-4 border-t border-slate-100">
+                    <div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold block">Ingreso / Costo</span>
+                        <span class="text-lg font-extrabold text-emerald-600">
+                            {% if lugar.precio == 0 %}
+                                ¡Gratis!
+                            {% else %}
+                                S/ {{ lugar.precio }}
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <a href="{% url 'detalle_lugar' lugar.id %}" class="inline-flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700">
+                        Ver más <i class="fa-solid fa-chevron-right text-xs transition-transform group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        {% empty %}
+        <div class="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8">
+            <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto text-2xl mb-4">
+                <i class="fa-solid fa-compass"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800">No encontramos resultados</h3>
+            <p class="text-slate-500 text-sm mt-1 max-w-md mx-auto">
+                No hay atractivos registrados que coincidan con la búsqueda.
+            </p>
+        </div>
+        {% endfor %}
+
+    </div>
+</section>
+
+<!-- HU03: SCRIPT DE FILTRADO ASÍNCRONO SIN RECARGA -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const inputBuscar = document.getElementById('input-buscar');
+    const selectCategoria = document.getElementById('select-categoria');
+    const gridLugares = document.getElementById('grid-lugares');
+    const btnLimpiar = document.getElementById('btn-limpiar');
+    let debounceTimer;
+
+    function ejecutarBusqueda() {
+        const query = inputBuscar.value.trim();
+        const categoria = selectCategoria.value;
+
+        if (query || categoria) {
+            btnLimpiar.classList.remove('hidden');
+        } else {
+            btnLimpiar.classList.add('hidden');
+        }
+
+        fetch(`/api/buscar-lugares/?buscar=${encodeURIComponent(query)}&categoria=${encodeURIComponent(categoria)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.lugares.length === 0) {
+                    gridLugares.innerHTML = `
+                        <div class="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-8">
+                            <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto text-2xl mb-4">
+                                <i class="fa-solid fa-compass"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-800">No encontramos resultados</h3>
+                            <p class="text-slate-500 text-sm mt-1">Intenta con otro término o limpiando las categorías.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                gridLugares.innerHTML = data.lugares.map(lugar => `
+                    <div class="group bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
+                        <div class="relative overflow-hidden h-52 bg-slate-100">
+                            <img src="${lugar.imagen_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80'}" 
+                                 alt="${lugar.nombre}" 
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-medium px-2.5 py-1 rounded-lg border border-white/10">
+                                📍 ${lugar.categoria}
+                            </div>
+                        </div>
+                        <div class="p-5 flex flex-col flex-grow justify-between">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                                    <a href="/lugar/${lugar.id}/">${lugar.nombre}</a>
+                                </h3>
+                                <p class="text-slate-500 text-sm mt-2 line-clamp-2 leading-relaxed">${lugar.descripcion}</p>
+                            </div>
+                            <div class="flex items-center justify-between pt-4 mt-4 border-t border-slate-100">
+                                <div>
+                                    <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold block">Ingreso / Costo</span>
+                                    <span class="text-lg font-extrabold text-emerald-600">
+                                        ${lugar.precio == 0 ? '¡Gratis!' : 'S/ ' + lugar.precio.toFixed(2)}
+                                    </span>
+                                </div>
+                                <a href="/lugar/${lugar.id}/" class="inline-flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700">
+                                    Ver más <i class="fa-solid fa-chevron-right text-xs transition-transform group-hover:translate-x-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            })
+            .catch(err => console.error("Error en búsqueda asíncrona:", err));
+    }
+
+    inputBuscar.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(ejecutarBusqueda, 250);
+    });
+
+    selectCategoria.addEventListener('change', ejecutarBusqueda);
+});
+</script>
+
 {% endblock %}

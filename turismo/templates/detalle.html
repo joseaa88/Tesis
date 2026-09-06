@@ -1,101 +1,252 @@
 {% extends 'base.html' %}
 
+{% block title %}{{ lugar.nombre }} — Explora Pucusana{% endblock %}
+
 {% block content %}
-<div class="container mx-auto mt-8 p-4">
+<div class="max-w-7xl mx-auto px-4 py-8">
     
-    <a href="{% url 'index' %}" class="btn btn-ghost mb-6">← Volver al inicio</a>
+    <!-- NAVEGACIÓN DE RETORNO -->
+    <div class="mb-6">
+        <a href="{% url 'index' %}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-600 transition">
+            <i class="fa-solid fa-arrow-left text-xs"></i> Volver al catálogo
+        </a>
+    </div>
 
-    <div class="card lg:card-side bg-base-100 shadow-xl">
-        <figure class="lg:w-1/2">
-            {% if lugar.imagen %}
-                <img src="{{ lugar.imagen.url }}" alt="{{ lugar.nombre }}" class="w-full h-full object-cover" />
-            {% else %}
-                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80" alt="Sin imagen" class="w-full h-full object-cover" />
-            {% endif %}
-        </figure>
-        
-        <div class="card-body lg:w-1/2">
-            <h2 class="card-title text-4xl text-blue-900">{{ lugar.nombre }}</h2>
+    <!-- TARJETA PRINCIPAL DEL LUGAR -->
+    <div class="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden mb-12">
+        <div class="grid grid-cols-1 lg:grid-cols-12">
             
-            {% if lugar.categoria %}
-                <div class="badge badge-primary mt-2">{{ lugar.categoria.icono }} {{ lugar.categoria.nombre }}</div>
-            {% endif %}
-
-            <div class="divider"></div> 
-            
-            <p class="text-gray-700 text-lg leading-relaxed">{{ lugar.descripcion }}</p>
-            
-            <div class="mt-6 bg-blue-50 p-4 rounded-lg">
-                <h3 class="font-bold text-blue-800 mb-2">Detalles útiles</h3>
-                <ul class="list-disc list-inside text-gray-600">
-                    <li><strong>Precio:</strong> 
-                        {% if lugar.precio == 0 %} ¡Gratis! {% else %} S/ {{ lugar.precio }} {% endif %}
-                    </li>
-                    <li><strong>Dirección:</strong> {{ lugar.direccion|default:"No especificada" }}</li>
-                    <li><strong>Coordenadas:</strong> {{ lugar.latitud|default:"--" }}, {{ lugar.longitud|default:"--" }}</li>
-                </ul>
-            </div>
-
-            <div class="card-actions justify-end mt-6 flex-wrap gap-2">
-                
-                {% if lugar.latitud and lugar.longitud %}
-                <a href="https://www.google.com/maps/dir/?api=1&destination={{ lugar.latitud|stringformat:'f' }},{{ lugar.longitud|stringformat:'f' }}" 
-                   target="_blank" 
-                   class="btn bg-green-600 hover:bg-green-700 text-white border-none shadow-md">
-                   📍 Cómo llegar
-                </a>
+            <!-- CONTENEDOR DE IMAGEN (5 cols) -->
+            <div class="lg:col-span-5 relative min-h-[320px] lg:min-h-full bg-slate-100">
+                {% if lugar.imagen %}
+                    <img src="{{ lugar.imagen.url }}" alt="{{ lugar.nombre }}" class="w-full h-full object-cover" />
+                {% else %}
+                    <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80" alt="Sin imagen" class="w-full h-full object-cover" />
                 {% endif %}
 
-                <button class="btn btn-outline btn-primary">Dejar una Reseña</button>
-                <button class="btn btn-primary">Añadir a mi Itinerario</button>
+                {% if lugar.categoria %}
+                    <div class="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/10">
+                        {{ lugar.categoria.icono }} {{ lugar.categoria.nombre }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- DETALLES Y ACCIONES (7 cols) -->
+            <div class="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between">
+                <div>
+                    <h1 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+                        {{ lugar.nombre }}
+                    </h1>
+
+                    <p class="text-slate-600 text-base sm:text-lg mt-4 leading-relaxed">
+                        {{ lugar.descripcion }}
+                    </p>
+
+                    <!-- GRID DE DATOS RÁPIDOS -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-ticket"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Costo de Ingreso</span>
+                                <span class="text-lg font-extrabold text-emerald-600">
+                                    {% if lugar.precio == 0 %} ¡Gratis! {% else %} S/ {{ lugar.precio }} {% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-location-dot"></i>
+                            </div>
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Dirección</span>
+                                <span class="text-sm font-bold text-slate-800 line-clamp-1">
+                                    {{ lugar.direccion|default:"Pucusana, Perú" }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCIONES PRINCIPALES -->
+                <div class="pt-8 mt-8 border-t border-slate-100">
+                    <div class="flex flex-wrap items-center gap-3">
+                        {% if lugar.latitud and lugar.longitud %}
+                        <a href="https://www.google.com/maps/dir/?api=1&destination={{ lugar.latitud|stringformat:'f' }},{{ lugar.longitud|stringformat:'f' }}" 
+                           target="_blank" 
+                           class="btn bg-emerald-600 hover:bg-emerald-700 text-white border-none rounded-xl font-bold shadow-lg shadow-emerald-600/20 gap-2 text-sm">
+                           <i class="fa-solid fa-diamond-turn-right"></i> Cómo llegar
+                        </a>
+                        {% endif %}
+
+                        <a href="#seccion-resenas" class="btn btn-outline border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl font-semibold text-sm gap-2">
+                            <i class="fa-regular fa-star"></i> Ver Reseñas
+                        </a>
+                    </div>
+
+                    <!-- BOTONES PARA COMPARTIR -->
+                    <div class="mt-6 pt-6 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                       <span class="text-xs font-semibold text-slate-400 uppercase mr-2">Compartir:</span>
+    
+                     <a href="https://api.whatsapp.com/send?text=¡Mira este increíble lugar en Pucusana! Te invito a visitarlo: {{ request.build_absolute_uri }}" 
+                     target="_blank" 
+                     onclick="registrarCompartido({{ lugar.id }})"
+                     class="btn btn-xs bg-[#25D366] hover:bg-[#128C7E] text-white border-none rounded-lg gap-1.5">
+                     <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+                     </a>
+
+                     <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}" 
+                     target="_blank" 
+                     onclick="registrarCompartido({{ lugar.id }})"
+                     class="btn btn-xs bg-[#1877F2] hover:bg-[#166FE5] text-white border-none rounded-lg gap-1.5">
+                     <i class="fa-brands fa-facebook text-sm"></i> Facebook
+                      </a>
+
+                     <button onclick="copiarEnlace({{ lugar.id }})" 
+                       class="btn btn-xs btn-ghost text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg gap-1.5">
+                       <i class="fa-solid fa-link text-xs"></i> Copiar enlace
+                      </button>
+                   </div>
+                </div>
+
             </div>
         </div>
     </div>
-</div>
-{% if lugar.latitud and lugar.longitud %}
-<div class="mt-12 bg-white p-6 rounded-xl shadow-lg">
-    <h3 class="text-2xl font-bold text-blue-900 mb-4">Ubicación en el Mapa 📍</h3>
-    
-    <div id="mapa" class="h-96 w-full rounded-xl border-2 border-blue-100 z-0 relative"></div>
-    <div class="mt-4 text-center">
-        <a href="https://www.google.com/maps/dir/?api=1&destination={{ lugar.latitud|stringformat:'f' }},{{ lugar.longitud|stringformat:'f' }}" 
-           target="_blank" 
-           class="btn btn-primary bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto shadow-md border-none">
-           📍 Cómo llegar con Google Maps
-        </a>
-        <p class="text-xs text-gray-400 mt-2">Se abrirá la aplicación en tu dispositivo móvil.</p>
+
+    <!-- SECCIÓN UBICACIÓN EN EL MAPA -->
+    {% if lugar.latitud and lugar.longitud %}
+    <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 mb-12">
+        <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-map-pin text-blue-600"></i> Ubicación en el Mapa
+        </h3>
+        <div id="mapa" class="h-80 w-full rounded-2xl border border-slate-200 z-10"></div>
     </div>
-</div>
-</div>
+    {% else %}
+    <div class="bg-slate-100 p-6 rounded-2xl text-center border border-dashed border-slate-200 mb-12">
+        <p class="text-slate-500 text-sm">🗺️ Las coordenadas de este atractivo aún no están registradas en el sistema.</p>
+    </div>
+    {% endif %}
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- SECCIÓN COMENTARIOS Y RESEÑAS -->
+    <div id="seccion-resenas" class="bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-slate-100">
+        <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+            <i class="fa-solid fa-comments text-blue-600"></i> Comentarios y Opiniones
+        </h3>
 
+        <!-- FORMULARIO DE NUEVA RESEÑA -->
+        {% if user.is_authenticated %}
+        <form method="POST" class="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 mb-10">
+            {% csrf_token %}
+            <h4 class="font-bold text-slate-800 text-base mb-4">Escribe tu opinión, {{ user.username }}:</h4>
+            
+            <div class="mb-4 max-w-xs">
+                <label class="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Calificación</label>
+                <select name="calificacion" class="select select-bordered w-full border-slate-300 rounded-xl text-sm" required>
+                    <option value="5">⭐⭐⭐⭐⭐ (Excelente)</option>
+                    <option value="4">⭐⭐⭐⭐ (Muy Bueno)</option>
+                    <option value="3">⭐⭐⭐ (Bueno)</option>
+                    <option value="2">⭐⭐ (Regular)</option>
+                    <option value="1">⭐ (Malo)</option>
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Tu Comentario</label>
+                <textarea name="comentario" rows="3" class="textarea textarea-bordered w-full border-slate-300 rounded-xl text-sm" placeholder="¿Qué tal estuvo tu experiencia en este lugar?..." required></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white border-none rounded-xl px-6 gap-2">
+                <i class="fa-solid fa-paper-plane text-xs"></i> Publicar Reseña
+            </button>
+        </form>
+        {% else %}
+        <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl text-center mb-10">
+            <p class="text-blue-900 text-sm">
+                Para dejar una reseña, necesitas <a href="{% url 'login' %}" class="font-bold underline">iniciar sesión</a> o <a href="{% url 'registro' %}" class="font-bold underline">registrarte</a>.
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- LISTA DE COMENTARIOS -->
+        <div class="space-y-6">
+            {% for resena in resenas %}
+            <div class="border-b border-slate-100 pb-6 last:border-0">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
+                            {{ resena.usuario.username|make_list|first|upper }}
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-slate-900 text-sm">{{ resena.usuario.username }}</h5>
+                            <p class="text-xs text-slate-400">{{ resena.fecha|date:"d M, Y" }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Estrellas de puntuación -->
+                    <div class="text-amber-400 text-sm">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= resena.calificacion %}★{% else %}<span class="text-slate-200">★</span>{% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <p class="text-slate-600 text-sm pl-13 mt-2 leading-relaxed">
+                    {{ resena.comentario }}
+                </p>
+            </div>
+            {% empty %}
+            <div class="text-center py-8">
+                <p class="text-slate-400 text-sm italic">Aún no hay opiniones sobre este atractivo. ¡Sé el primero en comentar!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+
+{% block extra_scripts %}
+{% if lugar.latitud and lugar.longitud %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Obtenemos las coordenadas desde Django (usamos stringformat para evitar errores con comas decimales)
-        var lat = {{ lugar.latitud|stringformat:"f" }};
-        var lng = {{ lugar.longitud|stringformat:"f" }};
+        var lat = parseFloat("{{ lugar.latitud|stringformat:'f' }}");
+        var lng = parseFloat("{{ lugar.longitud|stringformat:'f' }}");
         
-        // Creamos el mapa centrado en esas coordenadas
-        var map = L.map('mapa').setView([lat, lng], 16);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            var map = L.map('mapa').setView([lat, lng], 16);
 
-        // Cargamos el diseño del mapa desde OpenStreetMap (¡Gratis!)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+            // Capa libre de OpenStreetMap (Sin marcas de agua ni API key)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
 
-        // Agregamos el "pin" o marcador rojo
-        var marker = L.marker([lat, lng]).addTo(map);
-        
-        // Globito de texto al hacer clic en el pin
-        marker.bindPopup("<b class='text-blue-800'>{{ lugar.nombre }}</b><br>¡Te esperamos aquí!").openPopup();
+            var marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup("<b class='text-slate-900 font-bold'>{{ lugar.nombre }}</b><br><span class='text-xs text-slate-500'>¡Te esperamos aquí!</span>").openPopup();
+        }
     });
 </script>
-{% else %}
-<div class="mt-12 bg-gray-50 p-6 rounded-xl text-center border border-gray-200">
-    <p class="text-gray-500">🗺️ Las coordenadas de este lugar aún no han sido registradas en el sistema.</p>
-</div>
 {% endif %}
+
+<script>
+    // Funciones de difusión (HU09) activas para todos los atractivos
+    function registrarCompartido(lugarId) {
+        fetch(`/api/lugar/${lugarId}/compartir/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        }).catch(e => console.error("Error al registrar compartido:", e));
+    }
+
+    function copiarEnlace(lugarId) {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            registrarCompartido(lugarId);
+            alert('¡Enlace copiado al portapapeles!');
+        });
+    }
+</script>
 {% endblock %}

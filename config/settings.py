@@ -64,6 +64,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'turismo.context_processors.alerta_perfil',
             ],
         },
     },
@@ -117,8 +118,6 @@ USE_TZ = True
 # ## CAMBIO IMPORTANTE: Configuración para que Tailwind y CSS funcionen en Render
 
 STATIC_URL = 'static/'
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Aquí es donde Django buscará archivos estáticos durante el desarrollo
 STATICFILES_DIRS = [
@@ -135,8 +134,6 @@ if not DEBUG:
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # ==========================================
 # CONFIGURACIÓN DE SEGURIDAD Y SESIONES
 # ==========================================
@@ -145,7 +142,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # 2. Tiempo máximo de inactividad (en segundos). Ejemplo: 900 = 15 minutos
-SESSION_COOKIE_AGE = 900 
+SESSION_COOKIE_AGE = 3600 
 
 # 3. Renueva el temporizador cada vez que el usuario hace clic en algo
 SESSION_SAVE_EVERY_REQUEST = True
@@ -153,3 +150,9 @@ SESSION_SAVE_EVERY_REQUEST = True
 # 4. Le dice a Django a dónde enviar a la gente si su sesión expira o intentan 
 # entrar a una página prohibida sin iniciar sesión
 LOGIN_URL = 'login'
+
+# A dónde ir después de iniciar sesión con éxito (al catálogo)
+LOGIN_REDIRECT_URL = 'index' 
+
+# A dónde ir después de cerrar sesión (a la portada pública)
+LOGOUT_REDIRECT_URL = 'landing'

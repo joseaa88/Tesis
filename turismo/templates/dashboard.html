@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto mt-8 p-4">
+    
+    <div class="mb-8 border-b pb-4">
+        <h2 class="text-3xl font-bold text-blue-900">Dashboard Municipal 📊</h2>
+        <p class="text-gray-600">Indicadores descriptivos en tiempo real para la gestión turística.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+            <h3 class="font-bold text-gray-700 mb-4 text-center">Distribución de Atractivos por Categoría</h3>
+            <canvas id="graficoCategorias"></canvas>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+            <h3 class="font-bold text-gray-700 mb-4 text-center">Top 5: Lugares Mejor Calificados</h3>
+            <canvas id="graficoTopLugares"></canvas>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // GRAFICO 1: Dona (Categorías)
+    // Usamos la etiqueta "safe" para que Django convierta las listas de Python a arreglos de JavaScript
+    const ctxCategorias = document.getElementById('graficoCategorias').getContext('2d');
+    new Chart(ctxCategorias, {
+        type: 'doughnut',
+        data: {
+            labels: {{ nombres_categorias|safe }},
+            datasets: [{
+                data: {{ totales_categorias|safe }},
+                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true }
+    });
+
+    // GRAFICO 2: Barras (Calificaciones)
+    const ctxTopLugares = document.getElementById('graficoTopLugares').getContext('2d');
+    new Chart(ctxTopLugares, {
+        type: 'bar',
+        data: {
+            labels: {{ nombres_lugares|safe }},
+            datasets: [{
+                label: 'Calificación Promedio (Estrellas)',
+                data: {{ promedios_lugares|safe }},
+                backgroundColor: '#3b82f6',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true, max: 5 } // Las estrellas van del 0 al 5
+            }
+        }
+    });
+</script>
+{% endblock %}
