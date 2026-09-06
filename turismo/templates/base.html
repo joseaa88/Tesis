@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explora Pucusana</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+</head>
+<body class="bg-gray-50 text-gray-800">
+    
+    <div class="navbar bg-base-100 shadow-md px-4">
+      <div class="flex-1">
+        <a href="{% url 'index' %}" class="btn btn-ghost text-xl text-blue-900">Explora Pucusana 🌊</a>
+      </div>
+      <div class="flex-none">
+        <ul class="menu menu-horizontal px-1 items-center">
+            
+            {% if user.is_authenticated %}
+                <li><span class="font-semibold text-gray-700">Hola, {{ user.username }} 👋</span></li>
+                <li>
+                    <form method="POST" action="{% url 'logout' %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-ghost text-red-500 hover:bg-red-50">Salir</button>
+                    </form>
+                </li>
+            {% else %}
+                <li><a href="{% url 'login' %}" class="text-blue-700 font-medium">Ingresar</a></li>
+                <li><a href="{% url 'registro' %}" class="btn btn-primary bg-blue-600 border-none text-white ml-2 hover:bg-blue-700">Registrarse</a></li>
+            {% endif %}
+            
+        </ul>
+      </div>
+    </div>
+
+    <div class="container mx-auto p-4">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+</body>
+</html>

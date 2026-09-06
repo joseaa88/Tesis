@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto mt-8 p-4">
+    
+    <a href="{% url 'index' %}" class="btn btn-ghost mb-6">← Volver al inicio</a>
+
+    <div class="card lg:card-side bg-base-100 shadow-xl">
+        <figure class="lg:w-1/2">
+            {% if lugar.imagen %}
+                <img src="{{ lugar.imagen.url }}" alt="{{ lugar.nombre }}" class="w-full h-full object-cover" />
+            {% else %}
+                <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80" alt="Sin imagen" class="w-full h-full object-cover" />
+            {% endif %}
+        </figure>
+        
+        <div class="card-body lg:w-1/2">
+            <h2 class="card-title text-4xl text-blue-900">{{ lugar.nombre }}</h2>
+            
+            {% if lugar.categoria %}
+                <div class="badge badge-primary mt-2">{{ lugar.categoria.icono }} {{ lugar.categoria.nombre }}</div>
+            {% endif %}
+
+            <div class="divider"></div> 
+            
+            <p class="text-gray-700 text-lg leading-relaxed">{{ lugar.descripcion }}</p>
+            
+            <div class="mt-6 bg-blue-50 p-4 rounded-lg">
+                <h3 class="font-bold text-blue-800 mb-2">Detalles útiles</h3>
+                <ul class="list-disc list-inside text-gray-600">
+                    <li><strong>Precio:</strong> 
+                        {% if lugar.precio == 0 %} ¡Gratis! {% else %} S/ {{ lugar.precio }} {% endif %}
+                    </li>
+                    <li><strong>Dirección:</strong> {{ lugar.direccion|default:"No especificada" }}</li>
+                    <li><strong>Coordenadas:</strong> {{ lugar.latitud|default:"--" }}, {{ lugar.longitud|default:"--" }}</li>
+                </ul>
+            </div>
+
+            <div class="card-actions justify-end mt-6 flex-wrap gap-2">
+                
+                {% if lugar.latitud and lugar.longitud %}
+                <a href="https://www.google.com/maps/dir/?api=1&destination={{ lugar.latitud|stringformat:'f' }},{{ lugar.longitud|stringformat:'f' }}" 
+                   target="_blank" 
+                   class="btn bg-green-600 hover:bg-green-700 text-white border-none shadow-md">
+                   📍 Cómo llegar
+                </a>
+                {% endif %}
+
+                <button class="btn btn-outline btn-primary">Dejar una Reseña</button>
+                <button class="btn btn-primary">Añadir a mi Itinerario</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% if lugar.latitud and lugar.longitud %}
+<div class="mt-12 bg-white p-6 rounded-xl shadow-lg">
+    <h3 class="text-2xl font-bold text-blue-900 mb-4">Ubicación en el Mapa 📍</h3>
+    
+    <div id="mapa" class="h-96 w-full rounded-xl border-2 border-blue-100 z-0 relative"></div>
+    <div class="mt-4 text-center">
+        <a href="https://www.google.com/maps/dir/?api=1&destination={{ lugar.latitud|stringformat:'f' }},{{ lugar.longitud|stringformat:'f' }}" 
+           target="_blank" 
+           class="btn btn-primary bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto shadow-md border-none">
+           📍 Cómo llegar con Google Maps
+        </a>
+        <p class="text-xs text-gray-400 mt-2">Se abrirá la aplicación en tu dispositivo móvil.</p>
+    </div>
+</div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obtenemos las coordenadas desde Django (usamos stringformat para evitar errores con comas decimales)
+        var lat = {{ lugar.latitud|stringformat:"f" }};
+        var lng = {{ lugar.longitud|stringformat:"f" }};
+        
+        // Creamos el mapa centrado en esas coordenadas
+        var map = L.map('mapa').setView([lat, lng], 16);
+
+        // Cargamos el diseño del mapa desde OpenStreetMap (¡Gratis!)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Agregamos el "pin" o marcador rojo
+        var marker = L.marker([lat, lng]).addTo(map);
+        
+        // Globito de texto al hacer clic en el pin
+        marker.bindPopup("<b class='text-blue-800'>{{ lugar.nombre }}</b><br>¡Te esperamos aquí!").openPopup();
+    });
+</script>
+{% else %}
+<div class="mt-12 bg-gray-50 p-6 rounded-xl text-center border border-gray-200">
+    <p class="text-gray-500">🗺️ Las coordenadas de este lugar aún no han sido registradas en el sistema.</p>
+</div>
+{% endif %}
+{% endblock %}
