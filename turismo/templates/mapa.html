@@ -36,11 +36,11 @@
         var map = L.map('mi_mapa').setView([-12.4830, -76.7960], 15);
 
         // 2. Capa base moderna y limpia (CartoDB Voyager)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 19
-        }).addTo(map);
+        // NUEVA LÍNEA (100% GRATUITA Y SIN API KEY):
+           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+           maxZoom: 19,
+           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+           }).addTo(map);
 
         // 3. Pintar lugares dinámicamente desde la base de datos de Django
         {% for lugar in lugares %}

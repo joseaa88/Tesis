@@ -206,6 +206,7 @@
 </div>
 {% endblock %}
 
+
 {% block extra_scripts %}
 {% if lugar.latitud and lugar.longitud %}
 <script>
@@ -216,32 +217,36 @@
         if (!isNaN(lat) && !isNaN(lng)) {
             var map = L.map('mapa').setView([lat, lng], 16);
 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            // Capa libre de OpenStreetMap (Sin marcas de agua ni API key)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                attribution: '&copy; OpenStreetMap'
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
             var marker = L.marker([lat, lng]).addTo(map);
             marker.bindPopup("<b class='text-slate-900 font-bold'>{{ lugar.nombre }}</b><br><span class='text-xs text-slate-500'>¡Te esperamos aquí!</span>").openPopup();
-           }
-         });
-         function registrarCompartido(lugarId) {
-         fetch(`/api/lugar/${lugarId}/compartir/`, {
-         method: 'POST',
-         headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-         }
-          }).catch(e => console.error("Error al registrar compartido:", e));
-          }
-
-          function copiarEnlace(lugarId) {
-          navigator.clipboard.writeText(window.location.href).then(() => {
-          registrarCompartido(lugarId);
-          alert('¡Enlace copiado al portapapeles!');
-          });
-         }
+        }
+    });
 </script>
-
 {% endif %}
+
+<script>
+    // Funciones de difusión (HU09) activas para todos los atractivos
+    function registrarCompartido(lugarId) {
+        fetch(`/api/lugar/${lugarId}/compartir/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        }).catch(e => console.error("Error al registrar compartido:", e));
+    }
+
+    function copiarEnlace(lugarId) {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            registrarCompartido(lugarId);
+            alert('¡Enlace copiado al portapapeles!');
+        });
+    }
+</script>
 {% endblock %}
