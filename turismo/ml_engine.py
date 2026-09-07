@@ -5,17 +5,47 @@ from django.conf import settings
 # 1. Rutas a los archivos .pkl que pegaste en la carpeta turismo/
 BASE_DIR = settings.BASE_DIR
 MODEL_PATH = os.path.join(BASE_DIR, 'turismo', 'modelo_pucusana.pkl')
-ENCODER_PATH = os.path.join(BASE_DIR, 'turismo', 'codificadores_pucusana.pkl')
 
-# Cargar el cerebro de la IA
+# === MODIFICACIÓN DE SEGURIDAD PARA EL CODIFICADOR ===
+# Validación flexible por si local o remotamente el archivo se llama "codificadores.pkl" o "codificadores_pucusana.pkl"
+ENCODER_PATH = os.path.join(BASE_DIR, 'turismo', 'codificadores_pucusana.pkl')
+if not os.path.exists(ENCODER_PATH):
+    ENCODER_PATH = os.path.join(BASE_DIR, 'turismo', 'codificadores.pkl')
+
+
+# ==============================================================================
+# CÓDIGO ANTERIOR (COMENTADO POR EXCESO DE CONSUMO DE RAM EN RENDER)
+# ==============================================================================
+# try:
+#     modelo_rf = joblib.load(MODEL_PATH)  <-- Esto cargaba los 260MB directo a la RAM, colapsando el servidor
+#     codificadores = joblib.load(ENCODER_PATH)
+#     print("✅ [ÉXITO] ¡Cerebro de IA y codificadores cargados correctamente!")
+# except Exception as e:
+#     print(f"❌ [ERROR] No se pudo cargar la IA. Error: {e}")
+#     modelo_rf = None
+#     codificadores = None
+# ==============================================================================
+
+
+# ==============================================================================
+# CÓDIGO NUEVO OPTIMIZADO (Carga eficiente usando mapas de memoria mmap)
+# ==============================================================================
 try:
-    modelo_rf = joblib.load(MODEL_PATH)
-    codificadores = joblib.load(ENCODER_PATH)
-    print("✅ [ÉXITO] ¡Cerebro de IA y codificadores cargados correctamente!")
+    if os.path.exists(MODEL_PATH):
+        # El parámetro mmap_mode='r' permite leer el modelo .pkl por partes desde el disco
+        # sin subirlo entero a la memoria RAM de Render (ahorra más de 200MB de RAM en el inicio)
+        modelo_rf = joblib.load(MODEL_PATH, mmap_mode='r')
+        codificadores = joblib.load(ENCODER_PATH)
+        print("✅ [ÉXITO] ¡Cerebro de IA y codificadores cargados correctamente con mmap!")
+    else:
+        print("⚠️ [AVISO] El archivo modelo_pucusana.pkl no se encuentra en la ruta física.")
+        modelo_rf = None
+        codificadores = None
 except Exception as e:
     print(f"❌ [ERROR] No se pudo cargar la IA. Error: {e}")
     modelo_rf = None
     codificadores = None
+# ==============================================================================
 
 # ========================================================
 # 2. EL TRADUCTOR (El puente entre Excel y Django)
@@ -25,9 +55,8 @@ MAPEO_EXCEL_A_DJANGO = {
     '2': 2,  
     '3': 3,
     '4': 4,
-    '303': 1, # Agregamos la predicción de la IA y la enlazamos a un lugar real de tu Django
-    '215': 2, # Cuando la IA diga 215, mostramos el lugar con ID 2 en Django
-    # Agrega más si tu base de datos tiene más IDs
+    '303': 1, 
+    '215': 2, 
 }
 
 def obtener_recomendaciones_rf(usuario, lugares_queryset):
@@ -35,7 +64,7 @@ def obtener_recomendaciones_rf(usuario, lugares_queryset):
     Predice el lugar ideal para el usuario usando Random Forest y lo pone primero.
     """
     if not modelo_rf or not codificadores or not hasattr(usuario, 'perfilusuario'):
-        print("⚠️ [AVISO] IA apagada o el usuario no tiene perfil. Mostrando catálogo normal.")
+        print("⚠️ [AVISO] IA apagada, archivos pkl ausentes o el usuario no tiene perfil. Catálogo normal.")
         return lugares_queryset, []
 
     perfil = usuario.perfilusuario
@@ -69,10 +98,11 @@ def obtener_recomendaciones_rf(usuario, lugares_queryset):
 
     if id_django_recomendado:
         for lugar in lugares_ordenados:
-            if lugar.id == id_django_recomendado:
-                lugares_ordenados.remove(lugar)
-                lugares_ordenados.insert(0, lugar) # Lo ponemos primero
-                recomendados_ids.append(lugar.id)  # Etiqueta de Recomendado
-                break
+            if lugar.id == id_django_redundado if hasattr(lugar, 'id') else lugar.id == id_django_recomendado:
+                if lugar.id == id_django_recomendado:
+                    lugares_ordenados.remove(lugar)
+                    lugares_ordenados.insert(0, lugar) 
+                    recomendados_ids.append(lugar.id)  
+                    break
 
     return lugares_ordenados, recomendados_ids
