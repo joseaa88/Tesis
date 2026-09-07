@@ -6,18 +6,16 @@ from django.conf import settings
 BASE_DIR = settings.BASE_DIR
 MODEL_PATH = os.path.join(BASE_DIR, 'turismo', 'modelo_pucusana.pkl')
 
-# === MODIFICACIÓN DE SEGURIDAD PARA EL CODIFICADOR ===
-# Validación flexible por si local o remotamente el archivo se llama "codificadores.pkl" o "codificadores_pucusana.pkl"
+# Validación de seguridad para los codificadores
 ENCODER_PATH = os.path.join(BASE_DIR, 'turismo', 'codificadores_pucusana.pkl')
 if not os.path.exists(ENCODER_PATH):
     ENCODER_PATH = os.path.join(BASE_DIR, 'turismo', 'codificadores.pkl')
-
 
 # ==============================================================================
 # CÓDIGO ANTERIOR (COMENTADO POR EXCESO DE CONSUMO DE RAM EN RENDER)
 # ==============================================================================
 # try:
-#     modelo_rf = joblib.load(MODEL_PATH)  <-- Esto cargaba los 260MB directo a la RAM, colapsando el servidor
+#     modelo_rf = joblib.load(MODEL_PATH)
 #     codificadores = joblib.load(ENCODER_PATH)
 #     print("✅ [ÉXITO] ¡Cerebro de IA y codificadores cargados correctamente!")
 # except Exception as e:
@@ -33,7 +31,7 @@ if not os.path.exists(ENCODER_PATH):
 try:
     if os.path.exists(MODEL_PATH):
         # El parámetro mmap_mode='r' permite leer el modelo .pkl por partes desde el disco
-        # sin subirlo entero a la memoria RAM de Render (ahorra más de 200MB de RAM en el inicio)
+        # sin subirlo entero a la memoria RAM de Render (ahorra más de 200MB de RAM)
         modelo_rf = joblib.load(MODEL_PATH, mmap_mode='r')
         codificadores = joblib.load(ENCODER_PATH)
         print("✅ [ÉXITO] ¡Cerebro de IA y codificadores cargados correctamente con mmap!")
@@ -46,6 +44,7 @@ except Exception as e:
     modelo_rf = None
     codificadores = None
 # ==============================================================================
+
 
 # ========================================================
 # 2. EL TRADUCTOR (El puente entre Excel y Django)
@@ -92,17 +91,16 @@ def obtener_recomendaciones_rf(usuario, lugares_queryset):
     id_django_recomendado = MAPEO_EXCEL_A_DJANGO.get(prediccion_excel, None)
     print(f"🔄 [DEBUG TRADUCCIÓN] Se tradujo al ID de Django: {id_django_recomendado}")
 
-    # 6. Reordenar el Catálogo Visual
+    # 6. Reordenar el Catálogo Visual (CORREGIDO SIN TYPOS)
     lugares_ordenados = list(lugares_queryset)
     recomendados_ids = []
 
     if id_django_recomendado:
         for lugar in lugares_ordenados:
-            if lugar.id == id_django_redundado if hasattr(lugar, 'id') else lugar.id == id_django_recomendado:
-                if lugar.id == id_django_recomendado:
-                    lugares_ordenados.remove(lugar)
-                    lugares_ordenados.insert(0, lugar) 
-                    recomendados_ids.append(lugar.id)  
-                    break
+            if lugar.id == id_django_recomendado:
+                lugares_ordenados.remove(lugar)
+                lugares_ordenados.insert(0, lugar) # Lo ponemos primero
+                recomendados_ids.append(lugar.id)  # Etiqueta de Recomendado
+                break
 
     return lugares_ordenados, recomendados_ids
