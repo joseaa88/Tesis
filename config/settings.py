@@ -77,10 +77,23 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 # Por ahora usamos SQLite. Cuando integremos Supabase, cambiaremos esto.
+# DATABASES = {
+  #  'default': {
+   #     'ENGINE': 'django.db.backends.sqlite3',
+    #    'NAME': BASE_DIR / 'db.sqlite3',
+    #}
+#}
+# Asegúrate de importar y configurar os para leer el archivo .env si usas herramientas como python-dotenv
+# Si no usas python-dotenv, puedes leerlas directamente usando os.environ.get si tu hosting las inyecta.
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
